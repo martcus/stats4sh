@@ -28,10 +28,10 @@ __base="$(basename ${__file} .sh)"
 __root="$(cd "$(dirname "${__dir}")" && pwd)" # <-- change this as it depends on your app
 
 # log4.sh inclusion
-source ../../log4sh/script/log4.sh -v INFO # -d "+%Y-%m-%d %H:%M:%S" # use -f $__file for log
+source log4.sh -v INFO # -d "+%Y-%m-%d %H:%M:%S" # use -f $__file for log
 
 ## Clear the screen
-clear
+echo ""
 
 DEBUG "__dir  = "$__dir
 DEBUG "__file = "$__file
@@ -39,48 +39,117 @@ DEBUG "__base = "$__base
 DEBUG "__root = "$__root
 
 tempfile=.sysinfolog
+# Define variable to reset terminal 
+reset=$(tput sgr0)
 
 ## Utils
 newline() {
-  echo "|"
+    echo "|"
 }
 
 ## OS info
 
 ## RAM usage
 _ramusage() {
- free -h | grep -v + >> .sysinfologtemp 
- # header
- echo -e "Memory Usages| Total|Used |Free" >> $tempfile
- cat .sysinfologtemp | grep "Mem" | awk '{print " Ram | "$2 "|" $3 "|" $4}' >> $tempfile
- #echo -e "Swap Usages| Total|Used |Free" >> $tempfile
- cat .sysinfologtemp | grep "Swap" | awk '{print " Swap | "$2 "|" $3 "|" $4}' >> $tempfile
- rm .sysinfologtemp
- newline >> $tempfile
+    echo -e '\E[32m'"Memory Usages"$reset >> $tempfile
+    free -h | sed 's/^/ |/' >> $tempfile
+
+    newline >> $tempfile
 }
-## File System
 
 ## Check System Uptime
 _uptime() {
-  uptime=$(uptime | awk '{print $3,$4}' | cut -f1 -d,)
-  echo "System Uptime Days/(HH:MM)| "$uptime >> $tempfile
-  newline >> $tempfile
+    uptime=$(uptime | awk '{print $3,$4}' | cut -f1 -d,)
+    echo -e '\E[32m'"Uptime Days/(HH:MM)|"$reset$uptime >> $tempfile
+    
+    newline >> $tempfile
 }
 
 ## Load average
 _loadaverage() {
-  loadaverage=$(top -n 1 -b | grep "load average:" | awk '{print $11 $12 $13}')
-  echo -e "Load Average|" $loadaverage >> $tempfile
-  newline >> $tempfile
+    loadaverage=$(top -n 1 -b | grep "load average:" | awk '{print $11 $12 $13}')
+    echo -e '\E[32m'"Load Average|"$reset$loadaverage >> $tempfile
+    
+    newline >> $tempfile
+}
+
+## Architecture
+_arch() {
+	# Check OS Type
+	os=$(uname -o)
+	echo -e '\E[32m'"Operating System Type|"$reset$os >> $tempfile
+
+	# Check OS Release Version and Name
+    name=$(cat /etc/os-release | grep 'NAME' | grep -v 'VERSION' | grep -v 'VERSION_ID' | grep -v 'PRETTY_NAME' | cut -f2 -d=)
+    echo -e  '\E[32m'"OS Name|"$reset$name >> $tempfile
+    version=$(cat /etc/os-release | grep 'VERSION' | grep -v 'NAME' | grep -v 'VERSION_ID' | grep -v 'PRETTY_NAME' | cut -f2 -d=)
+    echo -e  '\E[32m'"OS Version|"$reset$version >> $tempfile
+
+    # Check Architecture
+	arch=$(uname -m)
+	echo -e '\E[32m'"Architecture|"$reset$arch >> $tempfile
+    
+	# Check Kernel Release
+	kernel=$(uname -r)
+	echo -e '\E[32m'"Kernel Release|"$reset$kernel >> $tempfile
+    
+	# Check hostname
+	echo -e '\E[32m'"Hostname|"$reset$HOSTNAME >> $tempfile
+    
+	# Check Internal IP
+	#internalip=$(hostname -I)
+	#echo -e '\E[32m'"Internal IP|"$reset$internalip >> $tempfile
+    
+	# Check External IP
+	#externalip=$(curl -s ipecho.net/plain;echo)
+	#echo -e '\E[32m'"External IP|"$reset$externalip >> $tempfile
+    
+	# Check DNS
+	nameservers=$(cat /etc/resolv.conf | sed '1 d' | awk '{print $2}')
+	echo -e '\E[32m'"Name Servers|"$reset$nameservers >> $tempfile
+
+    newline >> $tempfile
+}
+
+_cpu() {
+    echo -e '\E[32m'"CPU|"$reset >> $tempfile
+    lscpu | sed 's/^/ |/' >> $tempfile
+
+    newline >> $tempfile
+}
+
+_diskusage() {
+    echo -e '\E[32m'"Disk Usages|"$reset >> $tempfile
+    df -h | sed 's/^/ |/' >> $tempfile
+
+    newline >> $tempfile
+}
+
+_process() {
+    echo -e '\E[32m'"Top 5 process|"$reset >> $tempfile
+	ps auxf | sort -nr -k 4 | head -5 | sed 's/^/ |/' >> $tempfile
+
+    newline >> $tempfile
 }
 
 ## Main
-# retrieve all info
+DEBUG "Retrieve information"
+
 _uptime
 
 _loadaverage
 
 _ramusage
+
+_process
+
+_arch
+
+_cpu
+
+_diskusage
+
+DEBUG "Done\n"
 
 # Print result in table format
 column -t -s '|' $tempfile
