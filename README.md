@@ -1,1 +1,1 @@
-# stats4sh
+# sysinfo4sh
