@@ -80,9 +80,9 @@ _arch() {
 	echo -e '\E[32m'"Operating System Type|"$reset$os >> $tempfile
 
 	# Check OS Release Version and Name
-    name=$(cat /etc/os-release | grep 'NAME' | grep -v 'VERSION' | grep -v 'VERSION_ID' | grep -v 'PRETTY_NAME' | cut -f2 -d=)
+    name=$(< /etc/os-release grep 'NAME' | grep -v 'VERSION' | grep -v 'VERSION_ID' | grep -v 'PRETTY_NAME' | cut -f2 -d=)
     echo -e  '\E[32m'"OS Name|"$reset$name >> $tempfile
-    version=$(cat /etc/os-release | grep 'VERSION' | grep -v 'NAME' | grep -v 'VERSION_ID' | grep -v 'PRETTY_NAME' | cut -f2 -d=)
+    version=$(< /etc/os-release grep 'VERSION' | grep -v 'NAME' | grep -v 'VERSION_ID' | grep -v 'PRETTY_NAME' | cut -f2 -d=)
     echo -e  '\E[32m'"OS Version|"$reset$version >> $tempfile
 
     # Check Architecture
@@ -105,7 +105,7 @@ _arch() {
 	#echo -e '\E[32m'"External IP|"$reset$externalip >> $tempfile
     
 	# Check DNS
-	nameservers=$(cat /etc/resolv.conf | sed '1 d' | awk '{print $2}')
+	nameservers=$(< /etc/resolv.conf sed '1 d' | awk '{print $2}')
 	echo -e '\E[32m'"Name Servers|"$reset$nameservers >> $tempfile
 
     newline >> $tempfile
